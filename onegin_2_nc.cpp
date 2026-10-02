@@ -8,7 +8,18 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define POISON 0xEBA1BCE
+#define POISON 0xEBA1CB0E04E10
+
+// #define ON_DEBUG
+
+#ifdef ON_DEBUG
+    #define PRINTF(...) printf(__VA_ARGS__)
+    #define GETCHAR() getchar()
+#endif
+#ifndef ON_DEBUG
+    #define PRINTF(...) (void(0))
+    #define GETCHAR() (void(0))
+#endif
 
 enum DATATYPES {
     INT          = 1,
@@ -58,7 +69,6 @@ int    minimum(int i, int j);
 char*  initialize_raw_buffer(const char* filename, struct stat* metadata);
 size_t fill_raw_buffer(char* raw_buffer, const char* filename, unsigned int* strings_counter);
 
-// char** fill_indexes_array(char* raw_buffer, unsigned int strings_counter, size_t length_written);
 struct str_info* fill_structures_array(char* raw_buffer, unsigned int strings_counter, size_t length_written);
 
 void   print_strings_by_ptr_array(char** pointers_array, int pointers_array_size);
@@ -74,66 +84,42 @@ int main () {
     struct str_info* array_strings_info = fill_structures_array(raw_buffer, amount_of_read_strings, length_written);
 
     for (unsigned int i = 0; i < amount_of_read_strings; i++) {
-        printf("contains: <%s>, address: <%p>, structaddress: <%p>, length: <%zu>, string number: <%u>", 
+        PRINTF("contains: <%s>, address: <%p>, structaddress: <%p>, length: <%zu>, string number: <%u>", 
                array_strings_info[i].ptr_on_str, 
                array_strings_info[i].ptr_on_str, 
                array_strings_info + i,
                array_strings_info[i].str_len, 
                i+1);
             
-        printf("\n");
+        PRINTF("\n");
     }   
 
+    PRINTF("sizeof strinfo: <%zu>, sizeof strlen'a: <%zu>, sizeof char*: <%zu>\n", sizeof(array_strings_info[0]), sizeof(array_strings_info[0].str_len), sizeof(array_strings_info[0].ptr_on_str));
+    GETCHAR();
+    PRINTF("lengthwritten: <%zu>\n", length_written);
 
-    printf("sizeof strinfo: <%zu>, sizeof strlen'a: <%zu>, sizeof char*: <%zu>\n", sizeof(array_strings_info[0]), sizeof(array_strings_info[0].str_len), sizeof(array_strings_info[0].ptr_on_str));
-    getchar();
-    printf("lengthwritten: <%zu>\n", length_written);
 
-
-    printf("<%u> amount of read strings\n", amount_of_read_strings);
-    printf("---------------------------------\n");
+    PRINTF("<%u> amount of read strings\n", amount_of_read_strings);
+    PRINTF("---------------------------------\n");
 
     quick_sort(array_strings_info, my_strcompare_start, swap_pointers, sizeof(struct str_info), 0, amount_of_read_strings - 1);
+    fill_sorted_strings_in_txt_file("output.txt", array_strings_info, amount_of_read_strings);
+    PRINTF("нажми гетчар\n");
+    GETCHAR();
+
+    qsort(array_strings_info, amount_of_read_strings, sizeof(struct str_info), my_strcompare_start); 
+
+    for (unsigned int i = 0; i < amount_of_read_strings; i++) {
+        PRINTF("contains: <%s>, address: <%p>, length: <%zu>, string number: <%u>", 
+               array_strings_info[i].ptr_on_str, 
+               array_strings_info[i].ptr_on_str, 
+               array_strings_info[i].str_len, 
+               i+1);
+            
+        PRINTF("\n");
+    }   
 
     fill_sorted_strings_in_txt_file("output.txt", array_strings_info, amount_of_read_strings);
-    printf("нажми гетчар\n");
-
-    getchar();
-
-    const char* ptr_on_str_const_1 = "To Peter Alexandrovich Pletnev";
-    const char* ptr_on_str_const_2 = "Heedless of the proud world's enjoyment";
-
-    struct str_info debug[2] {
-        {  
-        strlen(ptr_on_str_const_1),
-        ptr_on_str_const_1,
-        },
-
-        {   
-        strlen(ptr_on_str_const_2),
-        ptr_on_str_const_2,
-       }
-    };
-
-    int comparator_result = my_strcompare_start(&debug[0], &debug[1]);
-
-    // getchar();
-
-    // qsort(array_strings_info, amount_of_read_strings, sizeof(struct str_info), my_strcompare_start); 
-
-    // // my_bubble_sort(array_strings_info, 0, amount_of_read_strings - 1, sizeof(struct str_info), my_strcompare_start, swap_pointers);
-
-    // for (unsigned int i = 0; i < amount_of_read_strings; i++) {
-    //     printf("contains: <%s>, address: <%p>, length: <%zu>, string number: <%u>", 
-    //            array_strings_info[i].ptr_on_str, 
-    //            array_strings_info[i].ptr_on_str, 
-    //            array_strings_info[i].str_len, 
-    //            i+1);
-            
-    //     printf("\n");
-    // }   
-
-    // fill_sorted_strings_in_txt_file("output.txt", array_strings_info, amount_of_read_strings);
 
     free(raw_buffer);
     raw_buffer = (char *)POISON; // увидел в инете и пздц понравилось
@@ -148,11 +134,11 @@ void quick_sort(void* array,
                 int left_border, int right_border) 
 {
     assert(array);
-    // printf("<%d> right border, <%d> left border\n", right_border, left_border);
+    PRINTF("<%d> right border, <%d> left border\n", right_border, left_border);
 
     if (right_border - left_border <= 3) {
         my_bubble_sort(array, left_border, right_border, array_element_size, comparator, swapper);
-        // printf("ВОТ , ОДИН ЭЛЕМЕНТ, СРАВНИВАТЬ САМ С СОБОЙ НЕ НАДО!!!\n");
+        PRINTF("ВОТ , ОДИН ЭЛЕМЕНТ, СРАВНИВАТЬ САМ С СОБОЙ НЕ НАДО!!!\n");
         return;
     }
 
@@ -215,7 +201,7 @@ char* initialize_raw_buffer(const char* filename, struct stat* metadata) {
         }
 
         else {
-            printf("ошибка во время определения размера файла.\nбуфер не инициализирован.\n"); 
+            PRINTF("ошибка во время определения размера файла.\nбуфер не инициализирован.\n"); 
 
             return NULL;
         }
@@ -242,14 +228,14 @@ size_t fill_raw_buffer(char* raw_buffer, const char* filename, unsigned int* str
     for (ssize_t i = 0; i < bytes_written; i++) {
         if (raw_buffer[i] == '\n') {
             raw_buffer[i] = '\0';
-            // if (i > 0 && (raw_buffer[i - 1] != '\0')) {
-            //     (*strings_counter)++; // сделать скип воит здесь для правильного счёчтика слеш каунтер
-            // }
-            (*strings_counter)++;
+            if (i > 0 && (raw_buffer[i - 1] != '\0')) {
+                (*strings_counter)++; // Сделал вот здесь условие для правильного счёчтика strings_counter.
+            }
+            // (*strings_counter)++;
         }
     }
 
-    printf("<%zd>\n", bytes_written);
+    PRINTF("<%zd>\n", bytes_written);
     
     raw_buffer[bytes_written] = '\0';
     if (raw_buffer[bytes_written - 1] != '\0') {
@@ -258,80 +244,7 @@ size_t fill_raw_buffer(char* raw_buffer, const char* filename, unsigned int* str
     bytes_written++;
 
     return bytes_written;
-
-    // assert(raw_buffer);
-    // assert(strings_counter);
-
-    // FILE*    file_pointer = fopen(filename, "r");
-    // size_t   length_written = 0;
-
-    // unsigned long symbol = 0;
-
-    // if (file_pointer) {
-    //     while ((symbol = fread(raw_buffer + length_written, sizeof(char), 1, file_pointer)) == 1) { // переделать полностью чтение файла
-    //         length_written++;
-
-    //         if (raw_buffer[length_written - 1] == '\n') {
-    //             (*strings_counter)++;
-    //             raw_buffer[length_written - 1] = '\0'; 
-    //         }
-    //     }
-    // }
-
-    // length_written++;
-    // raw_buffer[length_written - 1] = '\0';
-    // (*strings_counter)++;
-
-    // return length_written;
 }
-
-// struct str_info* fill_structures_array(char* raw_buffer, unsigned int strings_counter, size_t length_written) {
-//     assert(raw_buffer);
-
-//     struct str_info* strings_info_arr = (struct str_info *)calloc(strings_counter, sizeof(struct str_info));
-
-//     assert(strings_info_arr); 
-
-//     unsigned int j = 0;
-
-//     char* raw_buffer_current_string  = raw_buffer;
-//     char* raw_buffer_previous_string = raw_buffer;
-    
-//     for (size_t i = 0; i < length_written && j < strings_counter; i++) {
-//         printf("<%zu:%c:%d>", i, raw_buffer[i], raw_buffer[i]);
-//         printf("\n");
-
-//         if ((*raw_buffer_current_string) == '\0') {
-//             if ((raw_buffer_current_string - raw_buffer_previous_string) > 0) {
-//                 strings_info_arr[j].ptr_on_str = raw_buffer_previous_string;
-//                 strings_info_arr[j].str_len = raw_buffer_current_string - raw_buffer_previous_string;
-//                 j++;
-//                 raw_buffer_previous_string = (raw_buffer_current_string + 1);
-//                 raw_buffer_current_string++; // вот эта строчка починила мою запись.
-//             }
-
-//             else {
-//                 printf("попал на слеш0\n");
-//                 printf("rbcs1.0 <%c>, i <%zu>\n", *raw_buffer_current_string, i);
-//                 getchar();
-            
-//                 while (*raw_buffer_current_string == '\0') {
-//                     raw_buffer_current_string++;
-//                 }
-
-//                 raw_buffer_previous_string = raw_buffer_current_string;
-//                 printf("rbcs <%c>, i <%zu>\n", *raw_buffer_current_string, i);
-//             }
-
-//         }
-
-//         else {
-//             raw_buffer_current_string++;
-//         }
-//     }
-
-//     return strings_info_arr;
-// }
 
 struct str_info* fill_structures_array(char* raw_buffer, unsigned int strings_counter, size_t length_written) {
     assert(raw_buffer);
@@ -346,40 +259,52 @@ struct str_info* fill_structures_array(char* raw_buffer, unsigned int strings_co
     char* raw_buffer_previous_string = raw_buffer;
     
     for (size_t i = 0; i < length_written && j < strings_counter; i++) {
-        printf("<%zu:%c:%d>", i, raw_buffer[i], raw_buffer[i]);
-        printf("\n");
+        PRINTF("<%zu:%c:%d>", i, raw_buffer[i], raw_buffer[i]);
+        PRINTF("\n");
 
         if ((*raw_buffer_current_string) == '\0') {
             if ((raw_buffer_current_string - raw_buffer_previous_string) > 0) {
                 strings_info_arr[j].ptr_on_str = raw_buffer_previous_string;
                 strings_info_arr[j].str_len = raw_buffer_current_string - raw_buffer_previous_string;
                 j++;
+                raw_buffer_previous_string = (raw_buffer_current_string + 1);
+                raw_buffer_current_string++; // вот эта строчка починила мою запись.
             }
 
-            raw_buffer_previous_string = (raw_buffer_current_string + 1);
+            else {
+                PRINTF("попал на слеш0\n");
+                PRINTF("rbcs1.0 <%c>, i <%zu>\n", *raw_buffer_current_string, i);
+                GETCHAR();
+            
+                while (*raw_buffer_current_string == '\0') {
+                    raw_buffer_current_string++;
+                }
+
+                raw_buffer_previous_string = raw_buffer_current_string;
+                PRINTF("rbcs <%c>, i <%zu>\n", *raw_buffer_current_string, i);
+            }
+
         }
 
-        raw_buffer_current_string++;
+        else {
+            raw_buffer_current_string++;
+        }
     }
 
     return strings_info_arr;
-}
-
+} 
 
 void fill_sorted_strings_in_txt_file(const char* filename, struct str_info* array_strings_info, unsigned int strings_counter) {
     assert(array_strings_info);
 
     FILE* file_pointer = fopen(filename, "w"); // OPEN или FOPEN?
-    // int fd = open(filename, O_WRONLY);
 
     if (file_pointer) {
         for (unsigned int i = 0; i < strings_counter - 1; i++) {
             size_t len_of_one_string = array_strings_info[i].str_len;
             fwrite(array_strings_info[i].ptr_on_str, sizeof(char), len_of_one_string, file_pointer);
-            // if (i != (strings_counter - 1)) {
-                fputc(10,  file_pointer);
-            // }
-            printf("записал\n");
+            fputc(10,  file_pointer);
+            PRINTF("записал\n");
         }
 
         size_t len_of_one_string = array_strings_info[strings_counter - 1].str_len;
@@ -387,7 +312,7 @@ void fill_sorted_strings_in_txt_file(const char* filename, struct str_info* arra
     }
 
     else {
-        printf("не удалось открыть файл.(\n");
+        PRINTF("не удалось открыть файл.(\n");
     }
 }
 
@@ -395,14 +320,14 @@ void fill_sorted_strings_in_txt_file(const char* filename, struct str_info* arra
 void print_strings_by_ptr_array(char** pointers_array, int pointers_array_size) {
     assert(pointers_array);
 
-    printf("начало принта\n");
-    printf("pointers_array_size: <%d>\n", pointers_array_size);
+    PRINTF("начало принта\n");
+    PRINTF("pointers_array_size: <%d>\n", pointers_array_size);
     
     for (int i = 0; i < pointers_array_size; i++) {
-        printf("<%s>\n", pointers_array[i]);
+        PRINTF("<%s>\n", pointers_array[i]);
     }
 
-    printf("конец принта\n"); 
+    PRINTF("конец принта\n"); 
 }
 
 void my_bubble_sort(void* array, int left_border, int right_border, 
@@ -509,34 +434,32 @@ int my_strcompare_start(const void* string_a_raw, const void* string_b_raw) {
     assert(string_a_raw);
     assert(string_b_raw);
 
-    // printf("\n<%p>, <%p> до преобразований! string a string b\n", string_a_raw, string_b_raw);
-    // getchar();
-
-    
+    PRINTF("\n<%p>, <%p> до преобразований! string a string b\n", string_a_raw, string_b_raw);
+    GETCHAR();
 
     const char* string_a = ((const str_info *)(string_a_raw)) -> ptr_on_str;
     const char* string_b = ((const str_info *)(string_b_raw)) -> ptr_on_str;
 
-    // printf("<%p> адрес структуры а из массива структур\n", ((const str_info *)(string_a_raw)));
-    // printf("<%p> адрес строки структуры а из массива структур\n", ((const str_info *)(string_a_raw)) -> ptr_on_str);
-    // printf("<%s> первая строка (стринга)\n", ((const str_info *)(string_a_raw)) -> ptr_on_str);
-    // printf("<%zu> длина первой строки\n", ((const str_info *)(string_a_raw)) -> str_len);
+    PRINTF("<%p> адрес структуры а из массива структур\n", ((const str_info *)(string_a_raw)));
+    PRINTF("<%p> адрес строки структуры а из массива структур\n", ((const str_info *)(string_a_raw)) -> ptr_on_str);
+    PRINTF("<%s> первая строка (стринга)\n", ((const str_info *)(string_a_raw)) -> ptr_on_str);
+    PRINTF("<%zu> длина первой строки\n", ((const str_info *)(string_a_raw)) -> str_len);
 
-    // printf("------------------------------------------\n");
+    PRINTF("------------------------------------------\n");
 
-    // printf("<%p> адрес структуры б из массива структур\n", ((const str_info *)(string_b_raw)));
-    // printf("<%p> адрес строки структуры б а из массива структур\n", ((const str_info *)(string_b_raw)) -> ptr_on_str);
-    // printf("<%s> вторая строка (стринга)\n", ((const str_info *)(string_b_raw)) -> ptr_on_str);
-    // printf("<%zu> длина второй строки\n", ((const str_info *)(string_b_raw)) -> str_len);;
+    PRINTF("<%p> адрес структуры б из массива структур\n", ((const str_info *)(string_b_raw)));
+    PRINTF("<%p> адрес строки структуры б а из массива структур\n", ((const str_info *)(string_b_raw)) -> ptr_on_str);
+    PRINTF("<%s> вторая строка (стринга)\n", ((const str_info *)(string_b_raw)) -> ptr_on_str);
+    PRINTF("<%zu> длина второй строки\n", ((const str_info *)(string_b_raw)) -> str_len);;
 
 
     if (string_a == string_b) {
-        // printf("сравниваем сам с собой. это партишин\n");
+        PRINTF("сравниваем сам с собой. это партишин\n");
 
         return 0;
     }
    
-    // getchar();
+    GETCHAR();
 
     size_t len_string_a = ((const str_info *)(string_a_raw)) -> str_len;
     size_t len_string_b = ((const str_info *)(string_b_raw)) -> str_len;
@@ -547,12 +470,12 @@ int my_strcompare_start(const void* string_a_raw, const void* string_b_raw) {
     size_t i = 0;
     size_t j = 0; 
 
-    // printf("<%zu>, <%zu>\n", len_string_a, len_string_b);
+    PRINTF("<%zu>, <%zu>\n", len_string_a, len_string_b);
 
     while (i < len_string_a && j < len_string_b) {
 
-        // printf("строки: <%s> <%s>\nэлемент сравнения: <%c> <%c>\n", string_a, string_b, string_a[i], string_b[j]);
-        // getchar();
+        PRINTF("строки: <%s> <%s>\nэлемент сравнения: <%c> <%c>\n", string_a, string_b, string_a[i], string_b[j]);
+        GETCHAR();
 
         if (!isalpha(string_a[i])) {
             i++;
