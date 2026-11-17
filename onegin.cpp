@@ -1,130 +1,81 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <ctype.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-
-#define POISON 0xEBA1CB0E04E10
-
-// #define ON_DEBUG
-
-#ifdef ON_DEBUG
-    #define PRINTF(...) printf(__VA_ARGS__)
-    #define GETCHAR() getchar()
-#endif
-#ifndef ON_DEBUG
-    #define PRINTF(...) (void(0))
-    #define GETCHAR() (void(0))
-#endif
-
-enum DATATYPES {
-    INT          = 1,
-    UNSIGNED_INT = 2,
-    FLOAT        = 3,
-    DOUBLE       = 4,
-    SIZE_T       = 5,
-    CHAR         = 6,
-    POINTER      = 7,
-    STRING       = 8,
-};
-
-struct stat  file_info;
-struct stat* ptr_file_info = &file_info;
-
-struct str_info {
-    size_t str_len;
-    const char* ptr_on_str;
-};
-
-void   quick_sort(void* array, 
-                  int (*comparator) (const void* address_a, const void* address_b), 
-                  void (*swapper) (int index_a, int index_b, void* source_array, int array_element_size), 
-                  int array_element_size,
-                  int left_border, int right_border);
-
-void   my_bubble_sort(void* array, int left_border, int right_border, 
-                      int array_element_size,
-                      int (*comparator) (const void* address_a, const void* address_b),
-                      void (*swapper) (int index_a, int index_b, void* source_array, int array_element_size)); 
-
-void   swap_ints(int a, int b, void* array, int array_element_size);
-void   swap_doubles(int a, int b, void* array, int array_element_size);
-void   swap_chars(int a, int b, void* array, int array_element_size);
-void   swap_pointers(int a, int b, void* array, int array_element_size); // Деду не забыть показать 21 варнинг если поставить unsigned int
-int    partition(void* array, int array_element_size, int left_border, int right_border,
-                 int (*comparator) (const void* address_a, const void* address_b), 
-                 void (*swapper) (int index_a, int index_b, void* source_array, int array_element_size));
-
-int    compare_ints(const void* address_a, const void* address_b);
-int    my_strcompare_start(const void* string_a_raw, const void* string_b_raw);
-int    my_strcompare_end(const void* string_a_raw, const void* string_b_raw);
-
-int    maximum(int i, int j);
-int    minimum(int i, int j);
-
-char*  initialize_raw_buffer(const char* filename, struct stat* metadata);
-size_t fill_raw_buffer(char* raw_buffer, const char* filename, unsigned int* strings_counter);
-
-struct str_info* fill_structures_array(char* raw_buffer, unsigned int strings_counter, size_t length_written);
-
-void   print_strings_by_ptr_array(char** pointers_array, int pointers_array_size);
-
-void   fill_sorted_strings_in_txt_file(const char* filename, struct str_info* array_strings_info, unsigned int strings_counter);
-void   raspechatka(int* array, int size); // сделать войдовской!!!!!
+#include "onegin.h"
 
 int main () {
-    unsigned int amount_of_read_strings = 0;
-
-    char*  raw_buffer = initialize_raw_buffer("formatted_onegin.txt", &file_info);
-    size_t length_written = fill_raw_buffer(raw_buffer, "formatted_onegin.txt", &amount_of_read_strings);
-    struct str_info* array_strings_info = fill_structures_array(raw_buffer, amount_of_read_strings, length_written);
-
-    for (unsigned int i = 0; i < amount_of_read_strings; i++) {
+    struct eaten_array* absorbed = eat_txt_file("formatted_onegin.txt");
+    struct str_info*    array_strings_information = absorbed->array_strings_info; // было стало в общем
+   
+    for (unsigned int i = 0; i < absorbed->amount_of_read_strings; i++) {
         PRINTF("contains: <%s>, address: <%p>, structaddress: <%p>, length: <%zu>, string number: <%u>", 
-               array_strings_info[i].ptr_on_str, 
-               array_strings_info[i].ptr_on_str, 
-               array_strings_info + i,
-               array_strings_info[i].str_len, 
+               array_strings_information[i].ptr_on_str, 
+               array_strings_information[i].ptr_on_str, 
+               array_strings_information + i,
+               array_strings_information[i].str_len, 
                i+1);
             
         PRINTF("\n");
     }   
 
-    PRINTF("sizeof strinfo: <%zu>, sizeof strlen'a: <%zu>, sizeof char*: <%zu>\n", sizeof(array_strings_info[0]), sizeof(array_strings_info[0].str_len), sizeof(array_strings_info[0].ptr_on_str));
+    PRINTF("sizeof strinfo: <%zu>, sizeof strlen'a: <%zu>, sizeof char*: <%zu>\n", 
+            sizeof(array_strings_information[0]), 
+            sizeof(array_strings_information[0].str_len), 
+            sizeof(array_strings_information[0].ptr_on_str));
+
     GETCHAR();
-    PRINTF("lengthwritten: <%zu>\n", length_written);
+    PRINTF("lengthwritten: <%zu>\n", absorbed->length_written);
 
 
-    PRINTF("<%u> amount of read strings\n", amount_of_read_strings);
+    PRINTF("<%u> amount of read strings\n", absorbed->amount_of_read_strings);
     PRINTF("---------------------------------\n");
 
-    quick_sort(array_strings_info, my_strcompare_start, swap_pointers, sizeof(struct str_info), 0, amount_of_read_strings - 1);
-    fill_sorted_strings_in_txt_file("output.txt", array_strings_info, amount_of_read_strings);
+    quick_sort(absorbed->array_strings_info, my_strcompare_start, swap_pointers, sizeof(struct str_info), 0, absorbed->amount_of_read_strings - 1);
+    fill_sorted_strings_in_txt_file("output.txt", absorbed->array_strings_info, absorbed->amount_of_read_strings);
     PRINTF("нажми гетчар\n");
     GETCHAR();
 
-    qsort(array_strings_info, amount_of_read_strings, sizeof(struct str_info), my_strcompare_start); 
+    qsort(absorbed->array_strings_info, absorbed->amount_of_read_strings, sizeof(struct str_info), my_strcompare_start); 
 
-    for (unsigned int i = 0; i < amount_of_read_strings; i++) {
+    for (unsigned int i = 0; i < absorbed->amount_of_read_strings; i++) {
         PRINTF("contains: <%s>, address: <%p>, length: <%zu>, string number: <%u>", 
-               array_strings_info[i].ptr_on_str, 
-               array_strings_info[i].ptr_on_str, 
-               array_strings_info[i].str_len, 
+               array_strings_information[i].ptr_on_str, 
+               array_strings_information[i].ptr_on_str, 
+               array_strings_information[i].str_len, 
                i+1);
             
         PRINTF("\n");
     }   
 
-    fill_sorted_strings_in_txt_file("output.txt", array_strings_info, amount_of_read_strings);
-
-    free(raw_buffer);
-    raw_buffer = (char *)POISON; // увидел в инете и пздц понравилось
+    fill_sorted_strings_in_txt_file("output.txt", absorbed->array_strings_info, absorbed->amount_of_read_strings);
+    
+    free(absorbed);
+    absorbed = (struct eaten_array *)POISON;
 
     return 0;
+}
+
+struct eaten_array* eat_txt_file(const char* filename_from) {
+    struct   stat file_info = {0};
+    unsigned int amount_of_read_strings = 0;
+
+    char*    raw_buffer                   = initialize_raw_buffer(filename_from, &file_info);
+    size_t   length_written               = fill_raw_buffer(raw_buffer, filename_from, &amount_of_read_strings, &file_info);
+    struct   str_info* array_strings_info = fill_structures_array(raw_buffer, amount_of_read_strings, length_written);
+
+    struct   eaten_array* absorbed = (struct eaten_array *)calloc(1, sizeof(eaten_array));
+
+    if (absorbed) {
+
+        absorbed->raw_buffer             = raw_buffer;
+        absorbed->length_written         = length_written;
+        absorbed->array_strings_info     = array_strings_info;
+        absorbed->amount_of_read_strings = amount_of_read_strings;
+
+        return absorbed;
+    }
+
+    printf("что-то пошло по пизде\n");
+    getchar();
+
+    return NULL;
 }
 
 void quick_sort(void* array, 
@@ -192,7 +143,7 @@ char* initialize_raw_buffer(const char* filename, struct stat* metadata) {
 
     if (stat_status == 0) {
         assert (metadata);
-        off_t raw_buffer_size  = (*metadata).st_size + 1;
+        off_t raw_buffer_size  = metadata->st_size + 1; 
 
         if (raw_buffer_size) {
             char* raw_buffer = (char *)calloc((size_t)raw_buffer_size, sizeof(char)); // скорее варнинг мьют, чем обязательное действие (size_t)
@@ -207,13 +158,13 @@ char* initialize_raw_buffer(const char* filename, struct stat* metadata) {
         }
     }
 
-    else {
+    else {  
 
         return NULL;
     }
 }
 
-size_t fill_raw_buffer(char* raw_buffer, const char* filename, unsigned int* strings_counter) {
+size_t fill_raw_buffer(char* raw_buffer, const char* filename, unsigned int* strings_counter, struct stat* ptr_file_info) {
     assert(raw_buffer);
     assert(strings_counter);
 
@@ -303,7 +254,7 @@ void fill_sorted_strings_in_txt_file(const char* filename, struct str_info* arra
         for (unsigned int i = 0; i < strings_counter - 1; i++) {
             size_t len_of_one_string = array_strings_info[i].str_len;
             fwrite(array_strings_info[i].ptr_on_str, sizeof(char), len_of_one_string, file_pointer);
-            fputc(10,  file_pointer);
+            fputc(10, file_pointer);
             PRINTF("записал\n");
         }
 
@@ -315,7 +266,6 @@ void fill_sorted_strings_in_txt_file(const char* filename, struct str_info* arra
         PRINTF("не удалось открыть файл.(\n");
     }
 }
-
 
 void print_strings_by_ptr_array(char** pointers_array, int pointers_array_size) {
     assert(pointers_array);
@@ -382,23 +332,6 @@ void swap_pointers(int a, int b, void* array, int array_element_size) {
     struct_b->ptr_on_str = temp;
 }
 
-/*  Хернища хернищевская которую надо переделать
-
-
-// void swap_doubles(int a, int b, void* array, int array_element_size) {
-//     double temp = *(double *)((char *)array + a * array_element_size);
-//     *(double *)((char*)array + a * array_element_size) = *(double *)((char *)array + b * array_element_size);
-//     *(double *)((char*)array + b * array_element_size) = temp;
-// }
-
-// void swap_chars(int a, int b, void* array, int array_element_size) {
-//     char temp = *(char *)((char*)array + a * array_element_size);
-//     *(char *)((char*)array + a * array_element_size) = *(char *)((char*)array + b * array_element_size);
-//     *(char *)((char*)array + b * array_element_size) = temp;
-// }
-
-
-*/
 int maximum(int i, int j) {
     if (i > j) {
         return i;
